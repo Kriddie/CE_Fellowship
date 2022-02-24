@@ -1,0 +1,197 @@
+---
+title: "Geomorphology_Ellerbe"
+author: "KWhitmore"
+date: "01/18/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(lubridate)
+library(plotly)
+library(dplyr)
+library(tidyr)
+library(zoo)
+library(plot3D)
+library(splines)
+library(Ecdat)
+library(dplyr)
+library(sp)
+library(geosphere)
+library(ggmap)
+
+
+```
+
+## BUild the  data frame for EllerbeCreek Tracks
+
+
+```{r build df}
+
+#2021-10-20 18:24 - 19:00
+
+Geomorph <- read.csv(here::here("/FallData/GPS/Ellerbe_Synop_2021-10-20.csv"), skip = 42)
+
+
+Geomorph <- Geomorph[,3:6]
+
+#convert time in UTC to local time
+Geomorph$DateTime <- gsub("T"," ", Geomorph$time)
+Geomorph$DateTime <- gsub("Z","", Geomorph$DateTime)
+
+Geomorph$DateTime <- as.POSIXct(Geomorph$DateTime, format = "%Y-%m-%d %H:%M:%S", tz = "UTC" )
+Geomorph$DateTime <-Geomorph$DateTime - 4*60*60 
+#round to nearest half second
+Geomorph$DateTime <- round_date(Geomorph$DateTime, unit = "15 second")
+
+Geomorph_1 <- subset(Geomorph,
+      DateTime > as.POSIXct('2021-10-20 18:30:00', tz="UTC") & DateTime < as.POSIXct('2021-10-20 19:00:00', tz="UTC"))
+
+
+
+#2021-10-21 08:30 - 17:50
+
+Geomorph <- read.csv(here::here("/FallData/GPS/Ellerbe_Synop_2021-10-21.csv"), skip = 42)
+
+
+Geomorph <- Geomorph[,3:6]
+
+#convert time in UTC to local time
+Geomorph$DateTime <- gsub("T"," ", Geomorph$time)
+Geomorph$DateTime <- gsub("Z","", Geomorph$DateTime)
+
+Geomorph$DateTime <- as.POSIXct(Geomorph$DateTime, format = "%Y-%m-%d %H:%M:%S", tz = "UTC" )
+Geomorph$DateTime <-Geomorph$DateTime - 4*60*60 
+#round to nearest half second
+Geomorph$DateTime <- round_date(Geomorph$DateTime, unit = "15 second")
+
+Geomorph_2 <- subset(Geomorph,
+      DateTime > as.POSIXct('2021-10-21 08:29:00', tz="UTC") & DateTime < as.POSIXct('2021-10-21 17:50:00', tz="UTC"))
+
+
+
+#2021-10-22 09:10 - 14:30
+
+Geomorph <- read.csv(here::here("/FallData/GPS/Ellerbe_Synop_2021-10-22.csv"), skip = 42)
+
+
+Geomorph <- Geomorph[,3:6]
+
+#convert time in UTC to local time
+Geomorph$DateTime <- gsub("T"," ", Geomorph$time)
+Geomorph$DateTime <- gsub("Z","", Geomorph$DateTime)
+
+Geomorph$DateTime <- as.POSIXct(Geomorph$DateTime, format = "%Y-%m-%d %H:%M:%S", tz = "UTC" )
+Geomorph$DateTime <-Geomorph$DateTime - 4*60*60 
+#round to nearest half second
+Geomorph$DateTime <- round_date(Geomorph$DateTime, unit = "15 second")
+
+Geomorph_3 <- subset(Geomorph,
+      DateTime > as.POSIXct('2021-10-22 09:10:00', tz="UTC") & DateTime < as.POSIXct('2021-10-22 14:30:00', tz="UTC"))
+
+Geomorph <- rbind(Geomorph_1,Geomorph_2,Geomorph_3)
+rm(Geomorph_1,Geomorph_2,Geomorph_3)
+```
+
+
+```{r add synop to df}
+WaterSamples <- read.csv(here::here("/FallData/WaterSamples/UNC_11-11-2021.csv"))
+
+colnames(WaterSamples) <- c("SampleName","Cl_mgL","SO4_mgL","Br_mgL","NO3_mgL", "DOC_mgL","TDN_mgL")
+
+WaterSamples$SampleNo <-  as.numeric(sub("(_).*","", WaterSamples$SampleName))
+WaterSamples$Date <- as.Date(gsub(".*_(.+)_.*", "\\1", WaterSamples$SampleName), format = "%m-%d-%y")
+WaterSamples$Time <- sub(".*_", "\\1", WaterSamples$SampleName)
+
+WaterSamples$DateTime <- as.POSIXct(paste(WaterSamples$Date, WaterSamples$Time), format="%Y-%m-%d %H:%M", tz="UTC")
+
+WaterSamples$DateTime <- round_date(WaterSamples$DateTime, unit = "1 minute")
+
+```
+
+Lat lon for water treament out flow:
+36.031767, -78.862275
+
+
+```{r look at all synop data}
+df <- full_join(WaterSamples,Geomorph, by="DateTime") 
+
+TrackMap <- qmplot(lon, lat, data = df#%>%drop_na(DOC_mgL)
+                   , zoom = 13, #color = grey,
+                   maptype = "toner-background"
+                   ) 
+
+#mid<-median(df$NO3_mgL, na.rm = TRUE)
+TrackMap +
+  geom_point(aes(color = DOC_mgL), data = df%>%drop_na(DOC_mgL), size = 3) +
+  scale_color_gradient(low="blue", high="red") #+
+#  scale_color_gradient2(midpoint=mid, low="blue", mid="white", high="red" )
+
+TrackMap +
+  geom_point(aes(color = log10(NO3_mgL)), data = df%>%drop_na(DOC_mgL), size = 3) +
+  scale_color_gradient(low="blue", high="red") 
+#  geom_point(aes(x=36.031767, y=-78.862275), color="white")
+#   annotate("text", x = 36.031767, y = -78.862275, label = "Some text")#+
+#  scale_color_gradient2(midpoint=mid, low="blue", mid="white", high="red" )
+
+#TrackMap_geo <- qmplot(lon, lat, data = Geomorph, zoom = 13,
+#                   maptype = "toner-background")
+
+#TrackMap
+#TrackMap_geo
+
+```
+
+```{r calibrated data}
+
+Mainstem_predict <- read.csv(here::here("/FallData/Mainstem_SCAN_predict_2022-01-22.csv"))
+
+Mainstem_predict$DateTime <- as.POSIXct(Mainstem_predict$DateTime, format = "%Y-%m-%d %H:%M:%S", tz = "UTC" )
+
+Mainstem_predict <- Mainstem_predict[,c("DateTime","NO3_predict","DOC_predict")]
+
+df_predict <- full_join(df,Mainstem_predict, by = "DateTime")
+
+
+
+TrackMap <- qmplot(lon, lat, data = df_predict%>%drop_na(DOC_predict)
+                   , zoom = 13, #color = grey,
+                   maptype = "toner-background"
+                   ) 
+
+TrackMap +
+  geom_point(aes(color = log10(NO3_predict)), data = df_predict %>%drop_na(DOC_predict), size = 2) +
+  scale_color_gradient(low="blue", high="red") +
+  labs(color = "log10(Nitrate \n (mg/L))") 
+
+#mid<-median(df$NO3_mgL, na.rm = TRUE)
+
+TrackMap +
+  geom_point(aes(color = log10(DOC_predict)), data = df_predict%>%drop_na(DOC_predict), size = 2) +
+  scale_color_gradient(low="blue", high="red") +
+  labs(color = "log10(DOC \n (mg/L))") 
+
+```
+
+```{r zoom in}
+
+data_upstream <- subset(df_predict,
+      DateTime > as.POSIXct('2021-10-21 13:45:00', tz="UTC"))
+
+
+TrackMap <- qmplot(lon, lat, data = data_upstream%>%drop_na(DOC_predict)
+                   , zoom = 13, #color = grey,
+                   maptype = "toner-background"
+                   ) 
+TrackMap +
+  geom_point(aes(color = NO3_predict), data = data_upstream %>%drop_na(DOC_predict), size = 2) +
+  scale_color_gradient(low="blue", high="red") +
+  labs(color = "Nitrate \n (mg/L)") 
+
+TrackMap +
+  geom_point(aes(color = DOC_predict), data = data_upstream %>%drop_na(DOC_predict), size = 2) +
+  scale_color_gradient(low="blue", high="red") +
+  labs(color = "DOC \n (mg/L)") 
+
+```
