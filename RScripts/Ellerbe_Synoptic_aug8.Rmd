@@ -1,7 +1,7 @@
 ---
 title: "Geomorphology_Ellerbe"
 author: "KWhitmore"
-date: "01/18/2022"
+date: "08/08/2024"
 output: html_document
 ---
 
@@ -28,7 +28,6 @@ library(ggmap)
 ```{r build df}
 
 #2021-10-20 18:24 - 19:00
-
 Geomorph <- read.csv(here::here("FallData/GPS/Ellerbe_Synop_2021-10-20.csv"), skip = 42)[,3:6]
 
 #convert time in UTC to local time
@@ -38,15 +37,12 @@ Geomorph$DateTime <- as.POSIXct(Geomorph$DateTime, format = "%Y-%m-%d %H:%M:%S",
 Geomorph$DateTime <-Geomorph$DateTime - 4*60*60 
 #round to nearest half second
 Geomorph$DateTime <- round_date(Geomorph$DateTime, unit = "15 second")
-
 Geomorph_1 <- subset(Geomorph,
       DateTime > as.POSIXct('2021-10-20 18:30:00', tz="UTC") & DateTime < as.POSIXct('2021-10-20 19:00:00', tz="UTC"))
 
 
 #2021-10-21 08:30 - 17:50
-
 Geomorph <- read.csv(here::here("FallData/GPS/Ellerbe_Synop_2021-10-21.csv"), skip = 42)[,3:6]
-
 #convert time in UTC to local time
 Geomorph$DateTime <- gsub("T"," ", Geomorph$time)
 Geomorph$DateTime <- gsub("Z","", Geomorph$DateTime)
@@ -60,9 +56,7 @@ Geomorph_2 <- subset(Geomorph,
       DateTime > as.POSIXct('2021-10-21 08:29:00', tz="UTC") & DateTime < as.POSIXct('2021-10-21 17:50:00', tz="UTC"))
 
 #2021-10-22 09:10 - 14:30
-
 Geomorph <- read.csv(here::here("FallData/GPS/Ellerbe_Synop_2021-10-22.csv"), skip = 42)[,3:6]
-
 #convert time in UTC to local time
 Geomorph$DateTime <- gsub("T"," ", Geomorph$time)
 Geomorph$DateTime <- gsub("Z","", Geomorph$DateTime)
@@ -90,7 +84,6 @@ WaterSamples$Date <- as.Date(gsub(".*_(.+)_.*", "\\1", WaterSamples$SampleName),
 WaterSamples$Time <- sub(".*_", "\\1", WaterSamples$SampleName)
 
 WaterSamples$DateTime <- as.POSIXct(paste(WaterSamples$Date, WaterSamples$Time), format="%Y-%m-%d %H:%M", tz="UTC")
-
 WaterSamples$DateTime <- round_date(WaterSamples$DateTime, unit = "1 minute")
 
 ```
