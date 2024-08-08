@@ -73,6 +73,7 @@ Geomorph <- rbind(Geomorph_1,Geomorph_2,Geomorph_3)
 rm(Geomorph_1,Geomorph_2,Geomorph_3)
 ```
 
+#read in water samples
 
 ```{r add synop to df}
 WaterSamples <- read.csv(here::here("FallData/WaterSamples/UNC_11-11-2021.csv"))
@@ -87,6 +88,8 @@ WaterSamples$DateTime <- as.POSIXct(paste(WaterSamples$Date, WaterSamples$Time),
 WaterSamples$DateTime <- round_date(WaterSamples$DateTime, unit = "1 minute")
 
 ```
+
+#plot 
 
 Lat lon for water treatment out flow:
 36.031767, -78.862275
@@ -109,6 +112,8 @@ TrackMap +
 
 
 ```
+
+#calibrate data
 
 ```{r calibrated data}
 
