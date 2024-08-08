@@ -24,7 +24,7 @@ library(ggmap)
 
 ```
 
-## BUild the  data frame for EllerbeCreek Tracks
+## Build the  data frame for EllerbeCreek Tracks
 
 
 ```{r build df}
@@ -142,33 +142,35 @@ TrackMap +
 #TrackMap_geo
 
 ```
+#update the predict data to the stuff that joseph did for you
 
 ```{r calibrated data}
 
-Mainstem_predict <- read.csv(here::here("FallData/Mainstem_SCAN_predict_2022-01-22.csv"))
+#Mainstem_predict <- read.csv(here::here("FallData/Mainstem_SCAN_predict_2022-01-22.csv"))
+Mainstem_predict <- read.csv(here::here("FallData/KW_data_prelimcal2024-06-18.csv"))%>%rename(DateTime = TIMESTAMP)
 
 Mainstem_predict$DateTime <- as.POSIXct(Mainstem_predict$DateTime, format = "%Y-%m-%d %H:%M:%S", tz = "UTC" )
 
-Mainstem_predict <- Mainstem_predict[,c("DateTime","NO3_predict","DOC_predict")]
+Mainstem_predict$X <- NULL
 
 df_predict <- full_join(df,Mainstem_predict, by = "DateTime")
 
 
 
-TrackMap <- qmplot(lon, lat, data = df_predict%>%drop_na(DOC_predict)
+TrackMap <- qmplot(lon, lat, data = df_predict%>%drop_na(NO3_mgL)
                    , zoom = 13, #color = grey,
                    maptype = "stamen_terrain"
                    ) 
 
 TrackMap +
-  geom_point(aes(color = log10(NO3_predict)), data = df_predict %>%drop_na(DOC_predict), size = 2) +
+  geom_point(aes(color = log10(NO3.N)), data = df_predict %>%drop_na(NO3.N), size = 2) +
   scale_color_gradient(low="blue", high="red") +
   labs(color = "log10(Nitrate \n (mg/L))") 
 
 #mid<-median(df$NO3_mgL, na.rm = TRUE)
 
 TrackMap +
-  geom_point(aes(color = log10(DOC_predict)), data = df_predict%>%drop_na(DOC_predict), size = 2) +
+  geom_point(aes(color = log10(DOC)), data = df_predict%>%drop_na(DOC), size = 2) +
   scale_color_gradient(low="blue", high="red") +
   labs(color = "log10(DOC \n (mg/L))") 
 
@@ -180,17 +182,17 @@ data_upstream <- subset(df_predict,
       DateTime > as.POSIXct('2021-10-21 13:45:00', tz="UTC"))
 
 
-TrackMap <- qmplot(lon, lat, data = data_upstream%>%drop_na(DOC_predict)
+TrackMap <- qmplot(lon, lat, data = data_upstream%>%drop_na(DOC)
                    , zoom = 13, #color = grey,
                    maptype = "stamen_terrain"
                    ) 
 TrackMap +
-  geom_point(aes(color = NO3_predict), data = data_upstream %>%drop_na(DOC_predict), size = 2) +
+  geom_point(aes(color = NO3.N), data = data_upstream %>%drop_na(NO3.N), size = 2) +
   scale_color_gradient(low="blue", high="red") +
   labs(color = "Nitrate \n (mg/L)") 
 
 TrackMap +
-  geom_point(aes(color = DOC_predict), data = data_upstream %>%drop_na(DOC_predict), size = 2) +
+  geom_point(aes(color = DOC), data = data_upstream %>%drop_na(DOC), size = 2) +
   scale_color_gradient(low="blue", high="red") +
   labs(color = "DOC \n (mg/L)") 
 

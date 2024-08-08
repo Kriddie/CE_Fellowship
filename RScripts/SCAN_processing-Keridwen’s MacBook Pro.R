@@ -7,7 +7,6 @@
 #spectral slope
 #hec ras - stream geometery to identify flow
 
-install.packages("pls")
 
 library(pls)
 library(here)
@@ -147,6 +146,12 @@ fig1 <- plot_ly(data = SCAN_Fall , x = ~DateTime, y = ~X205.00)
 fig1
 fig1 <- plot_ly(data = df , x = ~DateTime, y = ~NO3_mgL)
 fig1
+
+WaterSamples_select <- WaterSamples%>%select(SampleName,DateTime,Cl_mgL,SO4_mgL,Br_mgL,NO3_mgL,DOC_mgL,TDN_mgL)
+##Joseph is going to help me with some analysis, so I will write out files for him
+
+#write.csv(SCAN_Fall,here::here("Joseph/SCAN_data.csv"),row.names = FALSE)
+#write.csv(WaterSamples_select,here::here("Joseph/watersampled_data.csv"),row.names = FALSE)
 
 ######
 

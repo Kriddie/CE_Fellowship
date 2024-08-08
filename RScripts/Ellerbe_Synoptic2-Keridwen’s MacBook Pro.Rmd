@@ -24,7 +24,7 @@ library(ggmap)
 
 ```
 
-## BUild the  data frame for EllerbeCreek Tracks
+## Build the  data frame for EllerbeCreek Tracks
 
 
 ```{r build df}
