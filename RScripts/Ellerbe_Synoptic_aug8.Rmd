@@ -5,6 +5,39 @@ date: "08/08/2024"
 output: html_document
 ---
 
+#analysis brainstorm
+1. Can I model discharge and constitute concentration/discharge assuming constant constitute loading to Ellerbee creek?
+2. Can I model but based on Josephs data (or other model)?
+3. And then I can compare 1 and 2 with the actual data (though I didn't include discharge, so that will have to be modeled --- I do have a couple USGS stations. AND Tommy maybe??)
+
+
+4. SWAT?
+
+
+
+urine water
+lawn fertilizer (though that's usually ammonium)
+
+look at WRR 2022 paper. isotopic sourcing
+HP 
+look at graphs look at predictors
+
+Johnny ecoli
+
+kashal synoptic sampling  - frontiers 2023
+
+ > cummulative upstream land use
+ > what's the delta 7
+ 
+pick points of interest`    
+
+
+J drive: where the data is at
+DEM might be on the j drive
+
+
+email joseph for j drive exploration
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -20,6 +53,7 @@ library(dplyr)
 library(sp)
 library(geosphere)
 library(ggmap)
+
 ```
 
 ## Build the  data frame for EllerbeCreek Tracks
@@ -70,6 +104,7 @@ Geomorph_3 <- subset(Geomorph,
       DateTime > as.POSIXct('2021-10-22 09:10:00', tz="UTC") & DateTime < as.POSIXct('2021-10-22 14:30:00', tz="UTC"))
 
 Geomorph <- rbind(Geomorph_1,Geomorph_2,Geomorph_3)
+distance_df <- rbind(Geomorph_3,Geomorph_2)
 rm(Geomorph_1,Geomorph_2,Geomorph_3)
 ```
 
@@ -98,16 +133,27 @@ Lat lon for water treatment out flow:
 ```{r look at all synop data}
 df <- full_join(WaterSamples,Geomorph, by="DateTime") 
 
-TrackMap <- qmplot(lon, lat, data = df#%>%drop_na(DOC_mgL)
-                   , zoom = 13, #color = grey,
-                   maptype = "stamen_terrain"
-                   ) 
+#TrackMap <- qmplot(lon, lat, data = df#%>%drop_na(DOC_mgL)
+#                   , zoom = 13, #color = grey,
+#                   maptype = "stamen_terrain"
+#                   ) 
 TrackMap +
   geom_point(aes(color = DOC_mgL), data = df%>%drop_na(DOC_mgL), size = 3) +
-  scale_color_gradient(low="blue", high="red") #+
+  scale_color_gradient(low="blue", high="red")
 
 TrackMap +
   geom_point(aes(color = log10(NO3_mgL)), data = df%>%drop_na(DOC_mgL), size = 3) +
+  scale_color_gradient(low="blue", high="red") 
+
+TrackMap +
+  geom_point(aes(color = log10(Cl_mgL)), data = df%>%drop_na(DOC_mgL), size = 3) +
+  scale_color_gradient(low="blue", high="red") 
+
+TrackMap +
+  geom_point(aes(color = log10(Br_mgL)), data = df%>%drop_na(DOC_mgL), size = 3) +
+  scale_color_gradient(low="blue", high="red") 
+TrackMap +
+  geom_point(aes(color = log10(SO4_mgL)), data = df%>%drop_na(DOC_mgL), size = 3) +
   scale_color_gradient(low="blue", high="red") 
 
 
@@ -121,7 +167,12 @@ Mainstem_predict <- read.csv(here::here("FallData/KW_data_prelimcal2024-06-18.cs
 
 Mainstem_predict$DateTime <- as.POSIXct(Mainstem_predict$DateTime, format = "%Y-%m-%d %H:%M:%S", tz = "UTC" )
 
-df_predict <- full_join(df,Mainstem_predict, by = "DateTime")
+
+df_predict <- full_join(df,dropped_nas, by = "DateTime")
+
+#df_predict_dropped_nas <- df_predict |>
+  #drop_na(NO3.N) |>
+  #mutate(log10_NO3N = log10(NO3.N))
 
 TrackMap <- qmplot(lon, lat, data = df_predict%>%drop_na(DOC), zoom = 13, maptype = "stamen_terrain") 
 
@@ -135,6 +186,8 @@ TrackMap +
   scale_color_gradient(low="blue", high="red") +
   labs(color = "log10(DOC \n (mg/L))") 
 
+
+#write.csv(df_predict_dropped_nas,here::here("calibrated_forJesse_dropped_nas2.csv"))
 ```
 #zoom in
 
@@ -145,8 +198,8 @@ zoom in to area upstream of water treatment plant so we can see some variation i
 data_upstream <- subset(df_predict, DateTime > as.POSIXct('2021-10-21 13:45:00', tz="UTC"))
 
 
-TrackMap <- qmplot(lon, lat, data = data_upstream%>%drop_na(DOC), zoom = 13, 
-                   maptype = "stamen_terrain") 
+#TrackMap <- qmplot(lon, lat, data = data_upstream%>%drop_na(DOC), zoom = 13, 
+ #                  maptype = "stamen_terrain") 
 
 TrackMap +
   geom_point(aes(color = NO3.N), data = data_upstream %>%drop_na(DOC), size = 2) +
@@ -158,4 +211,60 @@ TrackMap +
   scale_color_gradient(low="blue", high="red") +
   labs(color = "DOC \n (mg/L)") 
 
+```
+
+#include distance
+we will remove s. Ellerbe brance for now
+
+```{r  include distance}
+
+distance_df <- subset(df_predict,DateTime > as.POSIXct('2021-10-21 08:29:00', tz="UTC"))
+#order by decreasing time
+distance_df <- distance_df[order(-as.numeric(distance_df$DateTime)),]
+
+###loop da loop
+
+distance_df <- distance_df%>%rename(lon_fit=lon)%>%rename(lat_fit=lat)%>%drop_na(lat_fit)
+
+distance_df$lon_dist <- NA
+distance_df$lat_dist <- NA
+i <- 2
+for(i in 1:nrow(distance_df)) {
+  if (i == 1) {
+
+      distance_df$dist <- 0
+      
+    } else {
+      distance_df[i,"lon_dist"] <- distance_df[i-1,"lon_fit"]
+      distance_df[i,"lat_dist"] <- distance_df[i-1,"lat_fit"]
+      distance_df[i,"dist_diff"] <- distHaversine(
+        c(distance_df[i,"lon_fit"], distance_df[i,"lat_fit"]), 
+        c(distance_df[i,"lon_dist"], distance_df[i,"lat_dist"]))
+      distance_df[i,"dist"] <- distance_df[i,"dist_diff"] + distance_df[i-1,"dist"]
+      }
+}
+
+```
+
+# plot by distance
+
+```{r  include distance}
+
+p1 <- ggplot(data=distance_df,aes(x=dist,y=log(NO3.N))) + geom_point(size=1)+
+  scale_color_gradient(low="blue", high="red")
+p1
+
+p2 <- ggplot(data=distance_df ,aes(x=dist,y=log(DOC))) + geom_point(size=1)+
+  scale_color_gradient(low="blue", high="red")
+p2
+
+p3 <- ggplot(data=distance_df ,aes(x=dist,y=log(TDN))) + geom_point(size=1)+
+  scale_color_gradient(low="blue", high="red")
+p3
+
+p5 <- ggplot(data=distance_df,aes(x=log(NO3.N),y=log(DOC),color=dist)) + geom_point(size=1)
+p5
+
+p6 <- ggplot(data=distance_df,aes(x=log(TDN),y=log(DOC),color=dist)) + geom_point(size=1)
+p6
 ```
